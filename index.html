@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
 <title>Lock Screen</title>
 
 <style>
@@ -21,6 +23,16 @@ html, body {
 
 body {
     background: url("background.jpg") center / cover no-repeat;
+}
+
+html {
+    background: black;
+}
+
+body {
+    min-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Dark overlay */
