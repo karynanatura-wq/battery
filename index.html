@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Lock Screen</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+}
+
+body {
+    background: url("background.jpg") center / cover no-repeat;
+}
+
+/* Dark overlay */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+}
+
+/* Lock screen layout */
+.lockscreen {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10vh 0 6vh;
+    color: white;
+    text-align: center;
+}
+
+/* Time & date */
+.time {
+    font-size: clamp(64px, 14vw, 96px);
+    font-weight: 300;
+    line-height: 1;
+}
+
+.date {
+    font-size: clamp(16px, 4vw, 22px);
+    opacity: 0.85;
+    margin-top: 1vh;
+}
+
+/* Unlock hint */
+.unlock {
+    font-size: 15px;
+    opacity: 0.75;
+}
+
+/* Battery container */
+.battery-wrapper {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+/* Glow */
+.battery-glow {
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(circle, rgba(255,255,255,0.6), transparent 70%);
+    opacity: 0;
+    filter: blur(30px);
+    transition: opacity 0.5s ease;
+}
+
+.battery-glow.active {
+    opacity: 1;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* Battery */
+.battery {
+    position: relative;
+    width: 34vw;
+    max-width: 200px;
+    height: 68vw;
+    max-height: 400px;
+    border: 6px solid #777;
+    border-radius: 22px;
+    background: rgba(0,0,0,0.2);
+    transform: scale(0.6);
+    opacity: 0;
+    transition: transform 1s ease, opacity 1s ease;
+    cursor: pointer;
+}
+
+.battery.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.battery::before {
+    content: "";
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 45%;
+    height: 16px;
+    background: #777;
+    border-radius: 8px;
+}
+
+/* Battery fill */
+.battery-fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 6%;
+    background: red;
+    border-radius: 16px;
+    transition: height 4s linear, background 4s linear;
+}
+
+/* Confetti */
+.confetti {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    animation: explode 2.5s ease-out forwards;
+    z-index: 4;
+}
+
+@keyframes explode {
+    to {
+        transform: translate(var(--x), var(--y)) rotate(360deg);
+        opacity: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="overlay"></div>
+
+<div class="lockscreen">
+    <div>
+        <div class="time" id="time"></div>
+        <div class="date" id="date"></div>
+    </div>
+
+    <div class="unlock">Swipe up to unlock</div>
+</div>
+
+<script>
+/* Clock */
+function updateTime() {
+    const now = new Date();
+    time.textContent = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+    date.textContent = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+    });
+}
+updateTime();
+setInterval(updateTime, 60000);
+
+let batteryWrapper;
+let charging = false;
+
+/* First interaction */
+document.body.addEventListener("pointerdown", () => {
+    if (batteryWrapper) return;
+    setTimeout(showBattery, 3000);
+}, { once: true });
+
+function showBattery() {
+    batteryWrapper = document.createElement("div");
+    batteryWrapper.className = "battery-wrapper";
+
+    const glow = document.createElement("div");
+    glow.className = "battery-glow";
+
+    const battery = document.createElement("div");
+    battery.className = "battery";
+
+    const fill = document.createElement("div");
+    fill.className = "battery-fill";
+
+    battery.appendChild(fill);
+    batteryWrapper.appendChild(glow);
+    batteryWrapper.appendChild(battery);
+    document.body.appendChild(batteryWrapper);
+
+    requestAnimationFrame(() => {
+        battery.classList.add("show");
+    });
+
+    battery.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        if (charging) return;
+        charging = true;
+
+        glow.classList.add("active");
+        fill.style.height = "100%";
+        fill.style.background = "limegreen";
+
+        setTimeout(() => launchConfetti(batteryWrapper), 4000);
+    });
+}
+
+/* Confetti */
+function launchConfetti(origin) {
+    const rect = origin.getBoundingClientRect();
+
+    for (let i = 0; i < 60; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.style.background = `hsl(${Math.random()*360},100%,60%)`;
+        c.style.left = rect.left + rect.width / 2 + "px";
+        c.style.top = rect.top + rect.height / 2 + "px";
+        c.style.setProperty("--x", `${(Math.random()-0.5)*800}px`);
+        c.style.setProperty("--y", `${(Math.random()-0.5)*800}px`);
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 3000);
+    }
+}
+</script>
+
+</body>
+</html>
